@@ -1,5 +1,7 @@
 import Categoria from './categoria';
 import Articulo from './articulo';
+import Usuario from './usuario';
+import Persona from './persona';
 export default {
-    Categoria, Articulo
+    Categoria, Articulo, Usuario, Persona
 }
