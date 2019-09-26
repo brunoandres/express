@@ -1,8 +1,27 @@
 import models from '../models';
+async function aumentarStock(idArticulo,cantidad){
+
+    let{stock} = await models.Articulo.findOne({_id:idArticulo});
+    let nStock = parseInt(stock)+parseInt(cantidad);
+    const reg = await models.Articulo.findByIdAndUpdate({_id:idArticulo},{stock:nStock});
+
+}
+async function disminuirStock(idArticulo,cantidad){
+
+    let{stock} = await models.Articulo.findOne({_id:idArticulo});
+    let nStock = parseInt(stock)-parseInt(cantidad);
+    const reg = await models.Articulo.findByIdAndUpdate({_id:idArticulo},{stock:nStock});
+
+}
 export default {
     add: async(req,res,next) => {
         try{
-            const reg = await models.Persona.create(req.body);
+            const reg = await models.Ingreso.create(req.body);
+            //Actualizar stock
+            let detalles = req.body.detalles;
+            detalles.map(function(x){
+                aumentarStock(x._id,x.cantidad);
+            });
             res.status(200).json(reg);
         }catch(e){
             res.status(500).send({
@@ -13,7 +32,7 @@ export default {
     },
     query: async(req,res,next)=>{
         try{
-            const reg = await models.Persona.findOne({_id:req.query._id});
+            const reg = await models.Ingreso.findOne({_id:req.query._id}).populate('usuario',{nombre:1}).populate('persona',{nombre:1});
             if(!reg){
                 res.status(404).send({
                     message : 'El registro no existe'
@@ -31,8 +50,7 @@ export default {
     list: async(req,res,next)=>{
         try{
             let valor = req.query.valor;
-            const reg = await models.Persona.find({$or:[{'nombre':new RegExp(valor,'i')},{'email':new RegExp(valor,'i')}]},{createdAt:0})
-            .sort({'createdAt':-1});
+            const reg = await models.Ingreso.find({$or:[{'num_comprobante':new RegExp(valor,'i')},{'serie_comprobante':new RegExp(valor,'i')}]},{createdAt:0}).sort({'createdAt':-1}).populate('usuario',{nombre:1}).populate('persona',{nombre:1});
             res.status(200).json(reg);
         }catch(e){
             res.status(500).send({
@@ -41,35 +59,10 @@ export default {
             next(e);
         }
     },
-    listClientes: async(req,res,next)=>{
-        try{
-            let valor = req.query.valor;
-            const reg = await models.Persona.find({$or:[{'nombre':new RegExp(valor,'i')},{'email':new RegExp(valor,'i')}],'tipo_persona':'Cliente'},{createdAt:0})
-            .sort({'createdAt':-1});
-            res.status(200).json(reg);
-        }catch(e){
-            res.status(500).send({
-                message:'Ocurrió un error'
-            });
-            next(e);
-        }
-    },
-    listProveedores: async(req,res,next)=>{
-        try{
-            let valor = req.query.valor;
-            const reg = await models.Persona.find({$or:[{'nombre':new RegExp(valor,'i')},{'email':new RegExp(valor,'i')}],'tipo_persona':'Proveedor'},{createdAt:0})
-            .sort({'createdAt':-1});
-            res.status(200).json(reg);
-        }catch(e){
-            res.status(500).send({
-                message:'Ocurrió un error'
-            });
-            next(e);
-        }
-    },
+    /*
     update:async(req,res,next)=>{
         try{
-            const reg = await models.Persona.findByIdAndUpdate({_id:req.body._id},{tipo_persona:req.body.tipo_persona,nombre:req.body.nombre,tipo_documento:req.body.tipo_documento,num_documento:req.body.num_documento,direccion:req.body.direccion,telefono:req.body.telefono,email:req.body.email});
+            const reg = await models.Categoria.findByIdAndUpdate({_id:req.body._id},{nombre:req.body.nombre,descripcion:req.body.descripcion});
             res.status(200).json(reg);
         }catch(e){
             res.status(500).send({
@@ -80,7 +73,7 @@ export default {
     },
     remove:async(req,res,next)=>{
         try{
-            const reg = await models.Persona.findByIdAndDelete({_id:req.body._id});
+            const reg = await models.Categoria.findByIdAndDelete({_id:req.body._id});
             res.status(200).json(reg);
         }catch(e){
             res.status(500).send({
@@ -88,10 +81,15 @@ export default {
             });
             next(e);
         }
-    },
+    },*/
     activate:async(req,res,next)=>{
         try{
-            const reg = await models.Persona.findByIdAndUpdate({_id:req.body._id},{estado:1});
+            const reg = await models.Ingreso.findByIdAndUpdate({_id:req.body._id},{estado:1});
+            //Actualizar stock
+            let detalles = reg.detalles;
+            detalles.map(function(x){
+                aumentarStock(x._id,x.cantidad);
+            });
             res.status(200).json(reg);
         }catch(e){
             res.status(500).send({
@@ -102,7 +100,11 @@ export default {
     },
     deactivate:async(req,res,next)=>{
         try{
-            const reg = await models.Persona.findByIdAndUpdate({_id:req.body._id},{estado:0});
+            const reg = await models.Ingreso.findByIdAndUpdate({_id:req.body._id},{estado:0});
+            let detalles = reg.detalles;
+            detalles.map(function(x){
+                disminuirStock(x._id,x.cantidad);
+            });
             res.status(200).json(reg);
         }catch(e){
             res.status(500).send({
